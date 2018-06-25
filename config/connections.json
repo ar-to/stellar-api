@@ -1,0 +1,16 @@
+{
+  "networks": {
+    "connectApi": "local",
+    "local":{
+      "url": "http://0.0.0.0:8000",
+      "networkName": "docker",
+      "networkType": "testnet"
+    },
+    "external":{
+      "url": "https://horizon-testnet.stellar.org",
+      "networkName": "stellar",
+      "networkType": "testnet"
+    },
+    "mainnet":{}
+  }
+}

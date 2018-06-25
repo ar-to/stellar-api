@@ -20,5 +20,6 @@ router.route('/')
 .post(api.postTest)
 
 router.get('/network', api.networkInfo);
+router.get('/get-balance/:address', api.getBalance);
 
 module.exports = router;
