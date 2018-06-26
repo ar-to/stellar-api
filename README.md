@@ -5,6 +5,7 @@
 - [Quick Start](#quick-start)
 - Getting Started
   - [Config](#config)
+  - [Stellar API Notes](#stellar-api-notes)
   - [Resources](#resources)
 - [List of All API Endpoints](#endpoints)
 
@@ -30,8 +31,25 @@ npm start
 ## Getting Started
 
 ### Setting Up Docker
-Follow these instructions to setup Docker for running a local development stellar-core and horizon.
-...
+Follow these instructions to setup Docker for running a local development stellar-core and horizon in MacOS but it is similar in other OSs. This setup runs a testnet network with the docker container in ephemeral mode.
+
+- install [Docker](https://docs.docker.com/docker-for-mac/install/)
+- Run container to pull docker stellar image and initiate container. The command below sets the horizon port to 8088 local and postgresql database to 5433 local. These are the ports used to connect to these services. Read about the [Docker stellar image](https://hub.docker.com/r/stellar/quickstart/) and available options. 
+
+```
+docker run --rm -it -p "8088:8000" -p "5433:5432" --name stellar stellar/quickstart —testnet
+```
+- To access the container internally:
+
+```
+docker exec -it stellar /bin/bash
+```
+- test horizon connection via browser or curl. Command below will return available endpoints and status of the network sync. You can now communicate with the Stellar network!
+
+```
+curl http://0.0.0.0:8000/
+```
+
 
 ### Testing Horizon locally
 Once the docker container is setup you need to wait until the node is synched with the network and the database is updated. You can do can check by accessing the container manually or via a curl command to the localhost and port given in the docker command.
@@ -68,6 +86,41 @@ curl http://0.0.0.0:8000/accounts/GDZCM7KFIFMW2SU4RS5YMUZPEKFWUI6WQTHBRB6AHPBRT5
 }
 ```
 
+
+## Stellar API Notes
+
+GET `/generate-seed`
+Generate a new seed and public key
+
+POST `/create-account`
+The `secretSeed` and `startingBalance` are required. Passing on the seed will generate a new seed and create the new account. To simply create a new account from an existing seed, first create the seed via `/generate-seed` and pass the public key as the `destinationPublicKey` parameter.
+Request:
+```
+{
+	"secretSeed": "secretSeed",
+    "startingBalance": "40"
+    "destinationPublicKey": "optional public key"
+}
+```
+Response:
+```
+{
+    "body": {
+        "secretSeed": "secretSeed"
+    },
+    "success": {
+        "newSeed": {
+            "publicKey": "publicKey",
+            "seed": "seed"
+        },
+        "sourceCanSign": true,
+        "sourcePublicKey": "sourcePublicKey",
+        "tx": {
+        ...
+        }
+    }
+}
+```
 
 ## Resources
 

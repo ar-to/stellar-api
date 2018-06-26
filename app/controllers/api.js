@@ -1,9 +1,4 @@
-// const horizon = require('../helpers/horizon.js');
-// var request = require('request');
-// var StellarSdk = require('stellar-sdk');
-// const server = new StellarSdk.Server('http://0.0.0.0:8000', {allowHttp: true});
-// StellarSdk.Network.useTestNetwork()
-
+var stringify = require('json-stringify-safe');
 var StellarService = require('../services/Stellar.js');
 const stellar = new StellarService();
 
@@ -15,7 +10,7 @@ module.exports = {
     res.send(req.body);
   },
   networkInfo: function (req, res, next) {
-    res.send({network: stellar.network})
+    res.send({ network: stellar.network })
   },
   generateSeed: function (req, res, next) {
     res.send(stellar.generateSeed());
@@ -25,14 +20,43 @@ module.exports = {
     obj.params = req.params;
     let publicKey = req.params.publicKey;
     stellar.createFriendBotAccount(publicKey)
-    .then(function(account) {
-      obj.account = account;
-      res.send(obj)
-    }).catch((error) => {
-      console.log('error: ',error)
+      .then(function (account) {
+        obj.account = account;
+        res.send(obj)
+      }).catch((error) => {
+        console.log('error: ', error)
+        obj.error = error;
+        res.status(404).send(obj).end();
+      });
+  },
+  createAccount: function (req, res, next) {
+    let obj = new Object();
+    obj.body = req.body;
+    let secretSeed = req.body.secretSeed;
+    let startingBalance = req.body.startingBalance;
+    let destinationPublicKey = req.body.destinationPublicKey;
+
+    try {
+      if (startingBalance === "" || startingBalance === null) {
+        throw "missing starting balance"
+      }
+      stellar.createAccount(secretSeed, startingBalance, destinationPublicKey)
+        .then(function (tx) {
+          obj.success = tx;
+          res.send(obj)
+        })
+        .catch((error) => {
+          console.log('error: ', error)
+          obj.error = JSON.parse(stringify(error));
+          res.status(404).send(obj).end();
+        });
+
+    } catch (error) {
+      console.log('catch error', error)
       obj.error = error;
-      res.send(obj);
-    });
+      res.status(404).send(obj).end();
+    }
+
   },
   getBalance: function (req, res, next) {
     let obj = new Object();
@@ -41,15 +65,16 @@ module.exports = {
     let publicKey = req.params.publicKey;
 
     stellar.getBalance(publicKey)
-    .then(function(account) {
-      // console.log('account:', account)
-      account.balances.forEach(function(balance) {
-        obj.balances.push(balance);
+      .then(function (account) {
+        // console.log('account:', account)
+        account.balances.forEach(function (balance) {
+          obj.balances.push(balance);
+        });
+        res.send(obj)
+      }).catch((error) => {
+        console.log('error: ', error)
+        obj.error = error;
+        res.status(404).send(obj).end();
       });
-      res.send(obj)
-    }).catch((error) => {
-      console.log('error: ',error)
-      res.send({"error": error});
-    });
   },
 }
