@@ -17,13 +17,30 @@ module.exports = {
   networkInfo: function (req, res, next) {
     res.send({network: stellar.network})
   },
+  generateSeed: function (req, res, next) {
+    res.send(stellar.generateSeed());
+  },
+  createFriendBotAccount: function (req, res, next) {
+    let obj = new Object();
+    obj.params = req.params;
+    let publicKey = req.params.publicKey;
+    stellar.createFriendBotAccount(publicKey)
+    .then(function(account) {
+      obj.account = account;
+      res.send(obj)
+    }).catch((error) => {
+      console.log('error: ',error)
+      obj.error = error;
+      res.send(obj);
+    });
+  },
   getBalance: function (req, res, next) {
     let obj = new Object();
     obj.params = req.params;
     obj.balances = new Array();
-    let addressRequested = req.params.address;
+    let publicKey = req.params.publicKey;
 
-    stellar.getBalance(addressRequested)
+    stellar.getBalance(publicKey)
     .then(function(account) {
       // console.log('account:', account)
       account.balances.forEach(function(balance) {
