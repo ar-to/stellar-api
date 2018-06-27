@@ -61,35 +61,80 @@ Stellar.prototype.createAccount = async function (secretSeed, startingBalance, d
   } else {
     let pair = StellarSdk.Keypair.random();
     obj.newSeed = {
-      publicKey : pair.publicKey(),
-      seed : pair.secret()
+      publicKey: pair.publicKey(),
+      seed: pair.secret()
     };
     destination = pair.publicKey();
-
   }
 
   //create account using destination parameter or generated publicKey
-    let sourcePair = StellarSdk.Keypair.fromSecret(secretSeed);
-    obj.sourceCanSign = sourcePair.canSign();
-    obj.sourcePublicKey = sourcePair.publicKey(); 
-    return await this.server.loadAccount(obj.sourcePublicKey)
-      .then(async function (source) {
-        var transaction = new StellarSdk.TransactionBuilder(source)
-          .addOperation(StellarSdk.Operation.createAccount({
-            destination: destination,
-            startingBalance: startingBalance
-          }))
-          .build();
-        transaction.sign(sourcePair);
-        obj.tx = await that.server.submitTransaction(transaction);
-        return Promise.resolve(obj)
-      }).catch(function (e) {
-        return Promise.reject(e);
-      });
+  let sourcePair = StellarSdk.Keypair.fromSecret(secretSeed);
+  obj.sourceCanSign = sourcePair.canSign();
+  obj.sourcePublicKey = sourcePair.publicKey();
+  return await this.server.loadAccount(obj.sourcePublicKey)
+    .then(async function (source) {
+      var transaction = new StellarSdk.TransactionBuilder(source)
+        .addOperation(StellarSdk.Operation.createAccount({
+          destination: destination,
+          startingBalance: startingBalance
+        }))
+        .build();
+      transaction.sign(sourcePair);
+      obj.tx = await that.server.submitTransaction(transaction);
+      return Promise.resolve(obj)
+    }).catch(function (e) {
+      return Promise.reject(e);
+    });
 }
 
 Stellar.prototype.getBalance = function (address) {
   return this.server.loadAccount(address)
+}
+
+/**
+ * Send Lumens between accounts
+ * @param {string} secretSeed 
+ * @param {string} startingBalance 
+ * @param {string} destinationPublicKey 
+ */
+Stellar.prototype.payment = async function (secretSeed, amount, destinationPublicKey) {
+  let obj = new Object();
+  let that = this;
+
+  let sourcePair = StellarSdk.Keypair.fromSecret(secretSeed);
+  obj.sourceCanSign = sourcePair.canSign();
+  obj.sourcePublicKey = sourcePair.publicKey();
+  return await this.server.loadAccount(obj.sourcePublicKey)
+    .then(async function (source) {
+      var transaction = new StellarSdk.TransactionBuilder(source)
+        .addOperation(StellarSdk.Operation.payment({
+          destination: destinationPublicKey,
+          asset: StellarSdk.Asset.native(),
+          amount: amount
+        }))
+        .build();
+      transaction.sign(sourcePair);
+      obj.tx = await that.server.submitTransaction(transaction);
+      return Promise.resolve(obj)
+
+    }).catch(function (e) {
+      return Promise.reject(e);
+    });
+}
+
+
+Stellar.prototype.getTransaction = function (transactionHash) {
+  return this.server.transactions()
+  .transaction(transactionHash)
+    .call()
+    .then(function (page) {
+      console.log('page records:',page.records);
+      return Promise.resolve('yeeepp')
+    })
+    .catch(function (err) {
+      console.log('err',err);
+      return Promise.reject(err);
+    });
 }
 
 module.exports = Stellar;

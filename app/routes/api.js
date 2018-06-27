@@ -21,8 +21,10 @@ router.route('/')
 
 router.get('/network', api.networkInfo);
 router.get('/generate-seed', api.generateSeed);
+router.get('/get-balance/:publicKey', api.getBalance);
+router.get('/transaction/:transactionHash', api.getTransaction);
 router.post('/create-friendbot-account/:publicKey', api.createFriendBotAccount);
 router.post('/create-account', api.createAccount);
-router.get('/get-balance/:publicKey', api.getBalance);
+router.post('/payment', api.payment);
 
 module.exports = router;

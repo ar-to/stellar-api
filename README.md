@@ -122,6 +122,17 @@ Response:
 }
 ```
 
+POST `/payment`
+Send Lumens between accounts
+Request:
+```
+{
+	"secretSeed": "secretSeed",
+	"amount": "40",
+	"destinationPublicKey": "destinationPublicKey"
+}
+```
+
 ## Resources
 
 Stellar testnet server: https://horizon-testnet.stellar.org/
