@@ -10,7 +10,7 @@ module.exports = {
     res.send(req.body);
   },
   networkInfo: function (req, res, next) {
-    res.send({ network: stellar.network })
+    res.send(stellar.networkInfo({ network: stellar.network }));
   },
   generateSeed: function (req, res, next) {
     res.send(stellar.generateSeed());

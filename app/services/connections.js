@@ -7,6 +7,7 @@ Connections = {
   connectApi: connectApi,
   network: network,
   networkUrl: network.url,
+  fallbackUrl: network.fallbackUrl,
   networkName: network.networkName,
   networkType: network.networkType
 }

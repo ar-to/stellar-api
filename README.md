@@ -73,6 +73,7 @@ curl http://0.0.0.0:8000/accounts/GDZCM7KFIFMW2SU4RS5YMUZPEKFWUI6WQTHBRB6AHPBRT5
     "connectApi": "local",
     "local":{
       "url": "http://0.0.0.0:8000",
+      "fallbackUrl": "https://horizon-testnet.stellar.org",
       "networkName": "docker",
       "networkType": "testnet"
     },
@@ -85,6 +86,8 @@ curl http://0.0.0.0:8000/accounts/GDZCM7KFIFMW2SU4RS5YMUZPEKFWUI6WQTHBRB6AHPBRT5
   }
 }
 ```
+Notes about the config file:
+- fallbackUrl - used to guarantee the connections continues even if the primary url fails to provide a successful 200 status code or for any other reason.
 
 
 ## Stellar API Notes
