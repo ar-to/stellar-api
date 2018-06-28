@@ -15,6 +15,72 @@ module.exports = {
   generateSeed: function (req, res, next) {
     res.send(stellar.generateSeed());
   },
+  getBalance: function (req, res, next) {
+    let obj = new Object();
+    obj.params = req.params;
+    obj.balances = new Array();
+    let { publicKey } = req.params;
+
+    stellar.getBalance(publicKey)
+      .then(function (account) {
+        // console.log('account:', account)
+        account.balances.forEach(function (balance) {
+          obj.balances.push(balance);
+        });
+        res.send(obj)
+      }).catch((error) => {
+        console.log('error: ', error)
+        obj.error = error;
+        res.status(404).send(obj).end();
+      });
+  },
+  getTransaction: function (req, res, next) {
+    let obj = new Object();
+    obj.params = req.params;
+    let { transactionHash } = req.params;
+
+    try {
+      stellar.getTransaction(transactionHash)
+        .then(function (tx) {
+          obj.success = tx;
+          res.send(obj)
+          // res.json(obj)
+        })
+        .catch((error) => {
+          console.log('error: ', error)
+          obj.error = JSON.parse(stringify(error));
+          res.status(404).send(obj).end();
+        });
+
+    } catch (error) {
+      console.log('catch error', error)
+      obj.error = error;
+      res.status(404).send(obj).end();
+    }
+  },
+  getLedger: function (req, res, next) {
+    let obj = new Object();
+    obj.params = req.params;
+    let sequence = req.params.sequence;
+
+    try {
+      stellar.getLedger(sequence)
+        .then(function (tx) {
+          obj.success = tx;
+          res.send(obj)
+        })
+        .catch((error) => {
+          console.log('error: ', error)
+          obj.error = JSON.parse(stringify(error));
+          res.status(404).send(obj).end();
+        });
+
+    } catch (error) {
+      console.log('catch error', error)
+      obj.error = error;
+      res.status(404).send(obj).end();
+    }
+  },
   createFriendBotAccount: function (req, res, next) {
     let obj = new Object();
     obj.params = req.params;
@@ -60,25 +126,6 @@ module.exports = {
       res.status(404).send(obj).end();
     }
   },
-  getBalance: function (req, res, next) {
-    let obj = new Object();
-    obj.params = req.params;
-    obj.balances = new Array();
-    let publicKey = req.params.publicKey;
-
-    stellar.getBalance(publicKey)
-      .then(function (account) {
-        // console.log('account:', account)
-        account.balances.forEach(function (balance) {
-          obj.balances.push(balance);
-        });
-        res.send(obj)
-      }).catch((error) => {
-        console.log('error: ', error)
-        obj.error = error;
-        res.status(404).send(obj).end();
-      });
-  },
   payment: function (req, res, next) {
     let obj = new Object();
     obj.body = req.body;
@@ -113,29 +160,63 @@ module.exports = {
       res.status(404).send(obj).end();
     }
   },
-  getTransaction: function (req, res, next) {
+  getAsset: function (req, res, next) {
     let obj = new Object();
-    obj.params = req.params;
-    let transactionHash = req.params.transactionHash;
+    obj.body = req.body;
+    let {
+      assetCode,
+      issuerPublicKey,
+    } = req.body;
 
-    console.log('transactionHash',transactionHash)
+    stellar.getAsset(assetCode, issuerPublicKey)
+      .then(function (account) {
+        obj.success = account;
+        res.send(obj)
+      }).catch((error) => {
+        console.log('error: ', error)
+        obj.error = error;
+        res.status(404).send(obj).end();
+      });
+  },
+  createAsset: function (req, res, next) {
+    let obj = new Object();
+    obj.body = req.body;
+    let {
+      assetCode,
+      assetLimit,
+      creationAmount,
+      issuerSecretSeed,
+      distributorSecretSeed
+    } = req.body;
 
-    try {
-      stellar.getTransaction(transactionHash)
-        .then(function (tx) {
-          obj.success = tx;
-          res.send(obj)
-        })
-        .catch((error) => {
-          console.log('error: ', error)
-          obj.error = JSON.parse(stringify(error));
-          res.status(404).send(obj).end();
-        });
+    stellar.createAsset(assetCode, assetLimit, creationAmount, issuerSecretSeed, distributorSecretSeed)
+      .then(function (account) {
+        obj.success = account;
+        res.send(obj)
+      }).catch((error) => {
+        console.log('error: ', error)
+        obj.error = error;
+        res.status(404).send(obj).end();
+      });
+  },
+  issueAssetToDistributor: function (req, res, next) {
+    let obj = new Object();
+    obj.body = req.body;
+    let {
+      assetCode,
+      issueAmount,
+      issuerSecretSeed,
+      distributorSecretSeed
+    } = req.body;
 
-    } catch (error) {
-      console.log('catch error', error)
-      obj.error = error;
-      res.status(404).send(obj).end();
-    }
+    stellar.issueAssetToDistributor(assetCode, issueAmount, issuerSecretSeed, distributorSecretSeed)
+      .then(function (account) {
+        obj.success = account;
+        res.send(obj)
+      }).catch((error) => {
+        console.log('error: ', error)
+        obj.error = error;
+        res.status(404).send(obj).end();
+      });
   },
 }

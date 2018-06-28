@@ -89,10 +89,23 @@ curl http://0.0.0.0:8000/accounts/GDZCM7KFIFMW2SU4RS5YMUZPEKFWUI6WQTHBRB6AHPBRT5
 
 ## Stellar API Notes
 
-GET `/generate-seed`
+#### GET /ledger/:sequence
+Pass the sequence number for the ledger to get details. Example:
+```
+http://localhost:3000/api/ledger/9708859
+```
+
+#### GET /get-balance/:publicKey
+Get balance details for a provided public key. Example:
+```
+http://localhost:3000/api/get-balance/GAQOXRMYFJQYE4JZG254MW62GUVPVQOES3RFC4PUX6NWYJ4YL7XTZY3J
+```
+
+
+#### GET /generate-seed
 Generate a new seed and public key
 
-POST `/create-account`
+#### POST /create-account
 The `secretSeed` and `startingBalance` are required. Passing on the seed will generate a new seed and create the new account. To simply create a new account from an existing seed, first create the seed via `/generate-seed` and pass the public key as the `destinationPublicKey` parameter.
 Request:
 ```
@@ -122,7 +135,7 @@ Response:
 }
 ```
 
-POST `/payment`
+#### POST /payment
 Send Lumens between accounts
 Request:
 ```
@@ -130,6 +143,74 @@ Request:
 	"secretSeed": "secretSeed",
 	"amount": "40",
 	"destinationPublicKey": "destinationPublicKey"
+}
+```
+
+#### POST /create-asset
+Creates a new stellar asset/credit/token. This endpoint will first create the asset object, then the distributor will call the changeTrust operation to set the limit of assets it expects from the issuer. The issuer will then create the asset but issuing some amount of assets to the distributor. Read about issuing assets from the [stellar docs](https://www.stellar.org/developers/guides/issuing-assets.html)
+
+Request:
+```
+{
+	"assetCode":"AssetName",
+	"assetLimit": "500",
+	"creationAmount": "50",
+	"issuerSecretSeed":"issuerSecretSeed",
+	"distributorSecretSeed": "distributorSecretSeed"
+}
+```
+
+Response: 
+```
+{
+    "body": {
+	...
+    },
+    "success": {
+        "issuerPublicKey": "issuerPublicKey",
+        "distributorPublicKey": "distributorPublicKey",
+        "newAsset": {
+            "code": "AssetName",
+            "issuer": "issuer public key"
+        },
+        "trustTx": {
+        }
+        "paymentTx": {
+        }
+    }
+}
+```
+
+#### POST /issue-asset
+Issuing assets to a distributor the first time will create the assets, afterwards it adds to the balance below the limit that distributor is trusting issuer to have.
+
+Request:
+```
+{
+	"assetCode":"rocketWoman",
+	"issueAmount": "10",
+	"issuerSecretSeed":"SAOULBQPK6ANAYHRS4AGOGGQSLUJQVB4NUNZOQAH3KFMEM5LHZ26XO6G",
+	"distributorSecretSeed": "SBIONFH7TZWWGLWG43KWN2CQIFX2DTOWBHD37AHRNXWA3LKDJN4ALYEY"
+}
+```
+
+Response:
+
+```
+{
+    "body": {
+	...
+    },
+    "success": {
+        "issuerPublicKey": "issuerPublicKey",
+        "distributorPublicKey": "distributorPublicKey",
+        "newAsset": {
+            "code": "AssetName",
+            "issuer": "issuer public key"
+        },
+        "paymentTx": {
+        }
+    }
 }
 ```
 
@@ -170,9 +251,63 @@ https://horizon-testnet.stellar.org/accounts/GDZCM7KFIFMW2SU4RS5YMUZPEKFWUI6WQTH
         ]
     },
     {
-        "path": "/api/get-balance/:address",
+        "path": "/api/generate-seed",
         "methods": [
             "GET"
+        ]
+    },
+    {
+        "path": "/api/get-balance/:publicKey",
+        "methods": [
+            "GET"
+        ]
+    },
+    {
+        "path": "/api/transaction/:transactionHash",
+        "methods": [
+            "GET"
+        ]
+    },
+    {
+        "path": "/api/ledger/:sequence",
+        "methods": [
+            "GET"
+        ]
+    },
+    {
+        "path": "/api/create-friendbot-account/:publicKey",
+        "methods": [
+            "POST"
+        ]
+    },
+    {
+        "path": "/api/create-account",
+        "methods": [
+            "POST"
+        ]
+    },
+    {
+        "path": "/api/payment",
+        "methods": [
+            "POST"
+        ]
+    },
+    {
+        "path": "/api/asset",
+        "methods": [
+            "POST"
+        ]
+    },
+    {
+        "path": "/api/create-asset",
+        "methods": [
+            "POST"
+        ]
+    },
+    {
+        "path": "/api/issue-asset",
+        "methods": [
+            "POST"
         ]
     },
     {
