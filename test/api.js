@@ -22,7 +22,7 @@ describe('Stellar API', () => {
                 res.should.have.status(200);
                 res.body.should.be.a('object');
                 console.log('network used: ', res.body.currentNetworkUrl)
-                // console.log('network : ', res.body)
+                console.log('network : ', res.body)
               done();
             });
       });

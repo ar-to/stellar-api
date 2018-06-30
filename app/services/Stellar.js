@@ -22,6 +22,7 @@ function Stellar() {
             console.log('Stellar connection statusCode 200:', result.statusCode === 200)
             if (result.statusCode === 200) {
               this.connectedNetworkUrl = connections.networkUrl;
+              console.log('connectedNetworkUrl', this.connectedNetworkUrl)
               this.server = new StellarSdk.Server(connections.networkUrl, { allowHttp: true });
               StellarSdk.Network.useTestNetwork()
             } else {
@@ -32,6 +33,7 @@ function Stellar() {
           .catch((error) => {
             // console.log('error', error.statusCode)
             this.connectedNetworkUrl = connections.fallbackUrl;
+            console.log('connectedNetworkUrl', this.connectedNetworkUrl)
             this.server = new StellarSdk.Server(connections.fallbackUrl, { allowHttp: true });
             StellarSdk.Network.useTestNetwork()
           })
@@ -125,17 +127,35 @@ Stellar.prototype.getBalance = function (address) {
   return this.server.loadAccount(address)
 }
 
+Stellar.prototype.getTransaction = function (transactionHash) {
+  let obj = new Object();
+  return this.server.transactions()
+    .transaction(transactionHash)
+    .call()
+    .then(function (details) {
+      let tx = new StellarSdk.Transaction(details.envelope_xdr);
+      obj.txOperations = tx.operations;
+      obj.details = details;
+      obj.txFromEnvelopeXDR = tx;
+      return Promise.resolve(obj)
+    })
+    .catch(function (err) {
+      console.log('err', err);
+      return Promise.reject(err);
+    });
+}
+
 /**
  * Send Lumens between accounts
- * @param {string} secretSeed 
+ * @param {string} senderSecretSeed 
  * @param {string} startingBalance 
  * @param {string} destinationPublicKey 
  */
-Stellar.prototype.payment = async function (secretSeed, amount, destinationPublicKey) {
+Stellar.prototype.payment = async function (senderSecretSeed, amount, destinationPublicKey) {
   let obj = new Object();
   let that = this;
 
-  let sourcePair = StellarSdk.Keypair.fromSecret(secretSeed);
+  let sourcePair = StellarSdk.Keypair.fromSecret(senderSecretSeed);
   obj.sourceCanSign = sourcePair.canSign();
   obj.sourcePublicKey = sourcePair.publicKey();
   return await this.server.loadAccount(obj.sourcePublicKey)
@@ -149,6 +169,8 @@ Stellar.prototype.payment = async function (secretSeed, amount, destinationPubli
         .build();
       transaction.sign(sourcePair);
       obj.tx = await that.server.submitTransaction(transaction);
+      let tx = new StellarSdk.Transaction(obj.tx.envelope_xdr);
+      obj.txOperations = tx.operations;
       return Promise.resolve(obj)
 
     }).catch(function (e) {
@@ -187,6 +209,128 @@ Stellar.prototype.getTransaction = function (transactionHash) {
     });
 }
 
+Stellar.prototype.getOfferById = function (offerId) {
+  let obj = new Object();
+
+  return this.server.trades()
+    .forOffer(offerId)
+    .call()
+    .then(function (details) {
+      obj.results = details;
+      return Promise.resolve(obj)
+    })
+    .catch(function (err) {
+      console.log('err', err);
+      return Promise.reject(err);
+    });
+}
+
+/**
+ * Get offers by account
+ * Currently there are not filters so all offers are taken. To filter refer to the available horizon endpoints
+ * @see [Offers by account](https://www.stellar.org/developers/horizon/reference/endpoints/offers-for-account.html)
+ * @param {string} accountId 
+ */
+Stellar.prototype.getOffersByAccount = function (accountId) {
+  let obj = new Object();
+  return this.server.offers('accounts', accountId)
+    .call()
+    .then(function (details) {
+      obj = details;
+      return Promise.resolve(obj)
+    })
+    .catch(function (err) {
+      console.log('err', err);
+      return Promise.reject(err);
+    });
+}
+
+/**
+ * Get details about asset
+ * @param {assetCode} assetCode 
+ * @param {issuerPublicKey} issuerPublicKey 
+ */
+Stellar.prototype.getAsset = function (assetCode, issuerPublicKey) {
+  let obj = new Object();
+
+  return this.server.assets()
+    .forCode(assetCode)
+    .forIssuer(issuerPublicKey)
+    .call()
+    .then(function (details) {
+      obj.results = details;
+      return Promise.resolve(obj)
+    })
+    .catch(function (err) {
+      console.log('err', err);
+      return Promise.reject(err);
+    });
+}
+
+/**
+ * Get offers by selling and buying assets
+ * @param {object|string} sellingAsset 
+ * @param {object|string} buyingAsset 
+ */
+Stellar.prototype.getOrderbookDetails = function (sellingAsset, buyingAsset) {
+  let obj = new Object();
+
+  if (typeof sellingAsset === 'object') {
+    obj.sellingAsset = new StellarSdk.Asset(sellingAsset.code, sellingAsset.issuer);
+  } else if (sellingAsset === 'native') {
+    obj.sellingAsset = StellarSdk.Asset.native();
+  }
+  if (typeof buyingAsset === 'object') {
+    obj.buyingAsset = new StellarSdk.Asset(buyingAsset.code, buyingAsset.issuer);
+  } else if (buyingAsset === 'native') {
+    obj.buyingAsset = StellarSdk.Asset.native();
+  }
+
+  return this.server.orderbook(obj.sellingAsset, obj.buyingAsset)
+    .call()
+    .then(function (details) {
+      obj.results = details;
+      return Promise.resolve(obj)
+    })
+    .catch(function (err) {
+      console.log('err', err);
+      return Promise.reject(err);
+    });
+}
+
+/**
+ * 
+ * @param {object|string} baseAsset 
+ * @param {object|string} counterAsset 
+ */
+Stellar.prototype.getTradesDetails = function (baseAsset, counterAsset) {
+  let obj = new Object();
+
+  if (typeof baseAsset === 'object') {
+    obj.base = new StellarSdk.Asset(baseAsset.code, baseAsset.issuer);
+  } else if (baseAsset === 'native') {
+    obj.base = StellarSdk.Asset.native();
+  }
+  if (typeof counterAsset === 'object') {
+    obj.counter = new StellarSdk.Asset(counterAsset.code, counterAsset.issuer);
+  } else if (counterAsset === 'native') {
+    obj.counter = StellarSdk.Asset.native();
+  }
+
+  return this.server.trades()
+    .forAssetPair(obj.base, obj.counter)
+    .forOffer()
+    .call()
+    .then(function (details) {
+      obj.results = details;
+      return Promise.resolve(obj)
+    })
+    .catch(function (err) {
+      console.log('err', err);
+      return Promise.reject(err);
+    });
+}
+
 /**
  * Create Asset/Credit/Token with Stellar
  * Steps:
@@ -207,7 +351,6 @@ Stellar.prototype.createAsset = async function (assetCode, assetLimit, creationA
 
   let issuerPair = StellarSdk.Keypair.fromSecret(issuerSecretSeed);
   let distributorPair = StellarSdk.Keypair.fromSecret(distributorSecretSeed);
-  // obj.sourceCanSign = sourcePair.canSign();
   obj.issuerPublicKey = issuerPair.publicKey();
   obj.distributorPublicKey = distributorPair.publicKey();
 
@@ -252,22 +395,62 @@ Stellar.prototype.createAsset = async function (assetCode, assetLimit, creationA
 }
 
 /**
+ * Send a changeTrust() Operation to allow account to accept asset
+ * An account must trust the asset/issuer before it can accept asset
+ * @param {string} assetCode 
+ * @param {string} assetLimit 
+ * @param {string} issuerPublicKey 
+ * @param {string} distributorSecretSeed 
+ */
+Stellar.prototype.trustAsset = async function (assetCode, assetLimit, issuerPublicKey, distributorSecretSeed) {
+  let obj = new Object();
+  let that = this;
+
+  let distributorPair = StellarSdk.Keypair.fromSecret(distributorSecretSeed);
+  obj.issuerPublicKey = issuerPublicKey;
+  obj.distributorPublicKey = distributorPair.publicKey();
+
+  // create new asset object
+  obj.newAsset = new StellarSdk.Asset(assetCode, obj.issuerPublicKey);
+
+  // First, the receiving(distributor) account must trust the asset
+  return await this.server.loadAccount(obj.distributorPublicKey)
+    .then(async function (receiver) {
+      var transaction = new StellarSdk.TransactionBuilder(receiver)
+        // The `changeTrust` operation creates (or alters) a trustline
+        // The `limit` parameter below is optional
+        .addOperation(StellarSdk.Operation.changeTrust({
+          asset: obj.newAsset,
+          limit: assetLimit
+        }))
+        .build();
+      transaction.sign(distributorPair);
+      obj.paymentTx = await that.server.submitTransaction(transaction);
+      let tx = new StellarSdk.Transaction(obj.paymentTx.envelope_xdr);
+      obj.txOperations = tx.operations;
+      return Promise.resolve(obj)
+    })
+    .catch(function (e) {
+      return Promise.reject(e);
+    });
+}
+
+/**
  * Issuer Asset/Credit/Token creates more Assets by issuing them to the distributor
  * @see [Assets ](https://www.stellar.org/developers/guides/issuing-assets.html)
  * @see [Assets Steps](https://www.stellar.org/developers/guides/walkthroughs/custom-assets.html)
  * @param {string} assetCode 
  * @param {string} issueAmount 
  * @param {string} issuerSecretSeed 
- * @param {string} distributorSecretSeed 
+ * @param {string} distributorPublicKey 
  */
-Stellar.prototype.issueAssetToDistributor = async function (assetCode, issueAmount, issuerSecretSeed, distributorSecretSeed) {
+Stellar.prototype.issueAssetToDistributor = async function (assetCode, issueAmount, issuerSecretSeed, distributorPublicKey) {
   let obj = new Object();
   let that = this;
 
   let issuerPair = StellarSdk.Keypair.fromSecret(issuerSecretSeed);
-  let distributorPair = StellarSdk.Keypair.fromSecret(distributorSecretSeed);
   obj.issuerPublicKey = issuerPair.publicKey();
-  obj.distributorPublicKey = distributorPair.publicKey();
+  obj.distributorPublicKey = distributorPublicKey;
 
   // create new asset object
   obj.newAsset = new StellarSdk.Asset(assetCode, obj.issuerPublicKey);
@@ -284,54 +467,64 @@ Stellar.prototype.issueAssetToDistributor = async function (assetCode, issueAmou
         .build();
       transaction.sign(issuerPair);
       obj.paymentTx = await that.server.submitTransaction(transaction);
+      let tx = new StellarSdk.Transaction(obj.paymentTx.envelope_xdr);
+      obj.txOperations = tx.operations;
       return Promise.resolve(obj)
     })
     .catch(function (e) {
       return Promise.reject(e);
     });
-  // return Promise.resolve(obj)
-}
-
-Stellar.prototype.getTransaction = function (transactionHash) {
-  let obj = new Object();
-  return this.server.transactions()
-    .transaction(transactionHash)
-    .call()
-    .then(function (details) {
-      let tx = new StellarSdk.Transaction(details.envelope_xdr);
-      obj.txOperations = tx.operations;
-      obj.details = details;
-      obj.txFromEnvelopeXDR = tx;
-      return Promise.resolve(obj)
-    })
-    .catch(function (err) {
-      console.log('err', err);
-      return Promise.reject(err);
-    });
 }
 
 /**
- * Get details about asset
- * @param {assetCode} assetCode 
- * @param {issuerPublicKey} issuerPublicKey 
+ * Create an offer to buy or sell assets
+ * @param {string} distributorSecretSeed 
+ * @param {object} sellingAsset 
+ * @param {object} buyingAsset 
+ * @param {string} sellingAmount 
+ * @param {string|object} price 
+ * @param {int} offerID 
  */
-Stellar.prototype.getAsset = function (assetCode, issuerPublicKey) {
+Stellar.prototype.createoffer = async function (distributorSecretSeed, sellingAsset, buyingAsset, sellingAmount, price, offerID) {
   let obj = new Object();
+  let that = this;
 
-  return this.server.assets()
-    .forCode(assetCode)
-    .forIssuer(issuerPublicKey)
-    .call()
-    .then(function (details) {
-      obj.results = details;
+  let distributorPair = StellarSdk.Keypair.fromSecret(distributorSecretSeed);
+  obj.distributorPublicKey = distributorPair.publicKey();
+
+  // create new asset object
+  if (typeof sellingAsset === 'object') {
+    obj.sellingAsset = new StellarSdk.Asset(sellingAsset.code, sellingAsset.issuer);
+  } else if (sellingAsset === 'native') {
+    obj.sellingAsset = StellarSdk.Asset.native();
+  }
+  if (typeof buyingAsset === 'object') {
+    obj.buyingAsset = new StellarSdk.Asset(buyingAsset.code, buyingAsset.issuer);
+  } else if (buyingAsset === 'native') {
+    obj.buyingAsset = StellarSdk.Asset.native();
+  }
+
+  return await this.server.loadAccount(obj.distributorPublicKey)
+    .then(async function (distributor) {
+      // issuer sends payment to distributor to create asset with amount
+      var transaction = new StellarSdk.TransactionBuilder(distributor)
+        .addOperation(StellarSdk.Operation.manageOffer({
+          selling: obj.sellingAsset,
+          buying: obj.buyingAsset,
+          amount: sellingAmount,
+          price: price,
+          offerId: offerID
+        }))
+        .build();
+      transaction.sign(distributorPair);
+      obj.paymentTx = await that.server.submitTransaction(transaction);
+      let tx = new StellarSdk.Transaction(obj.paymentTx.envelope_xdr);
+      obj.txOperations = tx.operations;
       return Promise.resolve(obj)
     })
-    .catch(function (err) {
-      console.log('err', err);
-      return Promise.reject(err);
+    .catch(function (e) {
+      return Promise.reject(e);
     });
-
-  return Promise.resolve(obj)
 }
 
 module.exports = Stellar;

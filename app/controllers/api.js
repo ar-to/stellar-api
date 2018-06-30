@@ -34,6 +34,29 @@ module.exports = {
         res.status(404).send(obj).end();
       });
   },
+  getLedger: function (req, res, next) {
+    let obj = new Object();
+    obj.params = req.params;
+    let sequence = req.params.sequence;
+
+    try {
+      stellar.getLedger(sequence)
+        .then(function (tx) {
+          obj.success = tx;
+          res.send(obj)
+        })
+        .catch((error) => {
+          console.log('error: ', error)
+          obj.error = JSON.parse(stringify(error));
+          res.status(404).send(obj).end();
+        });
+
+    } catch (error) {
+      console.log('catch error', error)
+      obj.error = error;
+      res.status(404).send(obj).end();
+    }
+  },
   getTransaction: function (req, res, next) {
     let obj = new Object();
     obj.params = req.params;
@@ -58,16 +81,40 @@ module.exports = {
       res.status(404).send(obj).end();
     }
   },
-  getLedger: function (req, res, next) {
+  getOfferById: function (req, res, next) {
     let obj = new Object();
     obj.params = req.params;
-    let sequence = req.params.sequence;
+    let { offerId } = req.params;
 
     try {
-      stellar.getLedger(sequence)
+      stellar.getOfferById(offerId)
         .then(function (tx) {
           obj.success = tx;
           res.send(obj)
+        })
+        .catch((error) => {
+          console.log('error: ', error)
+          obj.error = JSON.parse(stringify(error));
+          res.status(404).send(obj).end();
+        });
+
+    } catch (error) {
+      console.log('catch error', error)
+      obj.error = error;
+      res.status(404).send(obj).end();
+    }
+  },
+  getOffersByAccount: function (req, res, next) {
+    let obj = new Object();
+    obj.params = req.params;
+    let { accountId } = req.params;
+
+    try {
+      stellar.getOffersByAccount(accountId)
+        .then(function (tx) {
+          obj.success = tx;
+          res.send(obj)
+          // res.json(obj)
         })
         .catch((error) => {
           console.log('error: ', error)
@@ -129,12 +176,17 @@ module.exports = {
   payment: function (req, res, next) {
     let obj = new Object();
     obj.body = req.body;
-    let secretSeed = req.body.secretSeed;
-    let amount = req.body.amount;
-    let destinationPublicKey = req.body.destinationPublicKey;
+    // let secretSeed = req.body.secretSeed;
+    // let amount = req.body.amount;
+    // let destinationPublicKey = req.body.destinationPublicKey;
+    let {
+      senderSecretSeed,
+      amount,
+      destinationPublicKey
+    } = req.body;
 
     try {
-      if (secretSeed === "" || secretSeed === null || secretSeed === undefined) {
+      if (senderSecretSeed === "" || senderSecretSeed === null || senderSecretSeed === undefined) {
         throw "missing seed needed for creating, signing and sending transaction"
       }
       if (amount === "" || amount === null || amount === undefined) {
@@ -143,7 +195,7 @@ module.exports = {
       if (destinationPublicKey === "" || destinationPublicKey === null || destinationPublicKey === undefined) {
         throw "missing destination public key"
       }
-      stellar.payment(secretSeed, amount, destinationPublicKey)
+      stellar.payment(senderSecretSeed, amount, destinationPublicKey)
         .then(function (tx) {
           obj.success = tx;
           res.send(obj)
@@ -169,6 +221,62 @@ module.exports = {
     } = req.body;
 
     stellar.getAsset(assetCode, issuerPublicKey)
+      .then(function (account) {
+        obj.success = account;
+        res.send(obj)
+      }).catch((error) => {
+        console.log('error: ', error)
+        obj.error = error;
+        res.status(404).send(obj).end();
+      });
+  },
+  getOrderbookDetails: function (req, res, next) {
+    let obj = new Object();
+    obj.body = req.body;
+    let {
+      sellingAsset,
+      buyingAsset,
+    } = req.body;
+
+    stellar.getOrderbookDetails(sellingAsset, buyingAsset)
+      .then(function (account) {
+        obj.success = account;
+        res.send(obj)
+      }).catch((error) => {
+        console.log('error: ', error)
+        obj.error = error;
+        res.status(404).send(obj).end();
+      });
+  },
+  getTradesDetails: function (req, res, next) {
+    let obj = new Object();
+    obj.body = req.body;
+    let {
+      baseAsset,
+      counterAsset,
+    } = req.body;
+
+    stellar.getTradesDetails(baseAsset, counterAsset)
+      .then(function (account) {
+        obj.success = account;
+        res.send(obj)
+      }).catch((error) => {
+        console.log('error: ', error)
+        obj.error = error;
+        res.status(404).send(obj).end();
+      });
+  },
+  trustAsset: function (req, res, next) {
+    let obj = new Object();
+    obj.body = req.body;
+    let {
+      assetCode,
+      assetLimit,
+      issuerPublicKey,
+      distributorSecretSeed
+    } = req.body;
+
+    stellar.trustAsset(assetCode, assetLimit, issuerPublicKey, distributorSecretSeed)
       .then(function (account) {
         obj.success = account;
         res.send(obj)
@@ -206,10 +314,10 @@ module.exports = {
       assetCode,
       issueAmount,
       issuerSecretSeed,
-      distributorSecretSeed
+      distributorPublicKey
     } = req.body;
 
-    stellar.issueAssetToDistributor(assetCode, issueAmount, issuerSecretSeed, distributorSecretSeed)
+    stellar.issueAssetToDistributor(assetCode, issueAmount, issuerSecretSeed, distributorPublicKey)
       .then(function (account) {
         obj.success = account;
         res.send(obj)
@@ -218,5 +326,48 @@ module.exports = {
         obj.error = error;
         res.status(404).send(obj).end();
       });
+  },
+  createoffer: function (req, res, next) {
+    let obj = new Object();
+    obj.body = req.body;
+    let {
+      distributorSecretSeed,
+      sellingAsset,
+      buyingAsset,
+      sellingAmount,
+      price,
+      offerID
+    } = req.body;
+
+    try {
+      if(sellingAsset == null || sellingAsset.code === null || sellingAsset.issuer === null){
+        throw "sellingAsset or its parameters cannot be null";
+      }
+      else if (sellingAsset == "" || sellingAsset.code === "" || sellingAsset.issuer === ""){
+        throw "sellingAsset or its parameters cannot be empty strings";
+      }
+      if(buyingAsset == null || buyingAsset.code === null || buyingAsset.issuer === null){
+        throw "buyingAsset or its parameters cannot be null";
+      }
+      else if (buyingAsset == "" || buyingAsset.code === "" || buyingAsset.issuer === ""){
+        throw "buyingAsset or its parameters cannot be empty strings";
+      }
+      stellar.createoffer(distributorSecretSeed, sellingAsset, buyingAsset, sellingAmount, price, offerID)
+        .then(function (account) {
+          obj.success = account;
+          res.send(obj)
+        }).catch((error) => {
+          console.log('error: ', error.response.data)
+          // obj.result_codes = error.response.data;
+          obj.error = JSON.parse(stringify(error.response.data));
+          // obj.error = JSON.parse(stringify(error));
+          // obj.error = error;
+          res.status(404).send(obj).end();
+        });
+    } catch (error) {
+      console.log('catch error', error)
+      obj.error = error;
+      res.status(404).send(obj).end();
+    }
   },
 }

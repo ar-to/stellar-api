@@ -6,6 +6,9 @@
 - Getting Started
   - [Config](#config)
   - [Stellar API Notes](#stellar-api-notes)
+      - [Assets](#assets)
+      - [Offers](#offers)
+          - [Offer Steps](#offer-steps)
   - [Resources](#resources)
 - [List of All API Endpoints](#endpoints)
 
@@ -89,6 +92,16 @@ curl http://0.0.0.0:8000/accounts/GDZCM7KFIFMW2SU4RS5YMUZPEKFWUI6WQTHBRB6AHPBRT5
 Notes about the config file:
 - fallbackUrl - used to guarantee the connections continues even if the primary url fails to provide a successful 200 status code or for any other reason.
 
+## Stellar Operations
+
+### Creating Assets
+Assets allow accounts to trade currencies(via Anchors) and custom tokens (via the Stellar Distributed Exchange). Creating assets requires the distributor to performs two steps: 
+1. distributor needs to trust the issuer and asset. See [stellar api notes](#stellar-api-notes)
+2. distributor needs to receive initial assets from the issuer directly or buy them by creating an [offer](#making-offers).
+
+
+### Making Offers
+Offers allow accounts to trade assets.
 
 ## Stellar API Notes
 
@@ -138,12 +151,13 @@ Response:
 }
 ```
 
+### Assets
 #### POST /payment
 Send Lumens between accounts
 Request:
 ```
 {
-	"secretSeed": "secretSeed",
+	"senderSecretSeed": "senderSecretSeed",
 	"amount": "40",
 	"destinationPublicKey": "destinationPublicKey"
 }
@@ -176,10 +190,42 @@ Response:
             "code": "AssetName",
             "issuer": "issuer public key"
         },
-        "trustTx": {
-        }
-        "paymentTx": {
-        }
+        "trustTx": {}
+        "paymentTx": {}
+    }
+}
+```
+
+#### POST /trust-asset
+
+An account must trust the asset/issuer before it can accept asset. This endpoint sends a changeTrust() Operation to allow account to accept asset. Then the `/issue-asset` endpoint can be performed.
+
+Request:
+```
+{
+	"assetCode":"rocketMan",
+	"assetLimit":"200",
+	"issuerPublicKey":"GDZCM7KFIFMW2SU4RS5YMUZPEKFWUI6WQTHBRB6AHPBRT5UQZJ4WM3II",
+	"distributorSecretSeed":"SDWKMXDDMXNDUX7OHXCLIFE3XLAVUSIF76V5E4GS6SCQ7B4YRNNQHUVR"
+}
+```
+
+Response:
+```
+{
+    "body": {
+	...
+    },
+    "success": {
+        "issuerPublicKey": "issuerPublicKey",
+        "distributorPublicKey": "distributorPublicKey",
+        "newAsset": {
+            "code": "AssetName",
+            "issuer": "issuer public key"
+        },
+        "trustTx": {}
+        "paymentTx": {}
+        "txOperations":{}
     }
 }
 ```
@@ -212,6 +258,255 @@ Response:
             "issuer": "issuer public key"
         },
         "paymentTx": {
+        }
+    }
+}
+```
+
+### Offers
+Offers allow accounts to trade assets. 
+
+#### Offer Steps
+The following steps can be used to create and lookup offers with this api, but can also be done with the [stellar laboratory](#https://www.stellar.org/laboratory/) and [horizon endpoints](#https://www.stellar.org/developers/horizon/reference/resources/offer.html).
+
+1. ensure account has balances for the assets you wish to buy/sell via `get-balance`
+2. ensure the account you wish to use to create the offer trusts the asset/issuer via `trust-asset`
+3. create offer with `/create-offer`
+4. query orderbook for offer via `/orderbook`
+5. query offers by account via `/offers`
+6. query trades performed for base/counter assets via `/trades`
+
+#### POST /create-offer
+
+Notes on crafting the request keep these things in mind:
+
+- `sellingAsset` and `buyingAsset` parameters can both be objects or the string "native" to refer to Lumens (XML). All parameters are required.
+- Delete an offer by passing `sellingAmount:0` and the offerId for the offer, which you can get from [stellar.expert](https://stellar.expert/explorer/public/) or via this api with `/offers`
+- 
+Request:
+```
+{
+	"distributorSecretSeed":"distributorSecretSeed",
+	"sellingAsset": {
+		"code": "rocketWoman",
+		"issuer": "issuer public key"
+	},
+	"buyingAsset": "native",
+	"sellingAmount": "10",
+	"price":"10",
+	"offerID":0
+}
+```
+Response:
+```
+{
+    "body": {
+	...
+    },
+    "success": {
+        "distributorPublicKey": "distributorPublicKey",
+        "buyingAsset": {
+            "code": "XLM"
+        },
+        "paymentTx": {}
+        "txOperations": [
+            {
+                "type": "manageOffer",
+                "selling": {
+                    "code": "rocketWoman",
+                    "issuer": "issuer public key"
+                },
+                "buying": {
+                    "code": "XLM"
+                },
+                "amount": "10",
+                "price": "10",
+                "offerId": "0"
+            }
+        ]
+    }
+}
+```
+
+#### POST /orderbook
+
+Request:
+```
+{
+    "sellingAsset": {
+        "code": "rocketWoman",
+        "issuer": "issuer public key"
+    },
+    "buyingAsset": "native"
+}
+```
+
+Response:
+```
+{
+...
+    "success": {
+        "sellingAsset": {},
+        "buyingAsset": {},
+        "results": {
+            "bids": [],
+            "asks": [
+                {
+                    "price_r": {
+                        "n": 10,
+                        "d": 1
+                    },
+                    "price": "10.0000000",
+                    "amount": "10.0000000"
+                }
+            ],
+            "base": {
+                "asset_type": "credit_alphanum12",
+                "asset_code": "rocketWoman",
+                "asset_issuer": "issuer public key"
+            },
+            "counter": {
+                "asset_type": "native"
+            }
+        }
+    }
+}
+```
+
+#### GET /offers
+
+Request:
+```
+http://localhost:3000/api/offers/GB5BTJFMQXSZB2733O2SL6GJLDX5BMUCES3I7VN2XCDGH2XWXTPYCIND
+```
+
+Response:
+
+```
+{
+    "params": {},
+    "success": {
+        "records": [
+            {
+                "_links": {
+                    "self": {
+                        "href": "https://horizon-testnet.stellar.org/offers/457886"
+                    },
+                    "offer_maker": {
+                        "href": "https://horizon-testnet.stellar.org/accounts/GB5BTJFMQXSZB2733O2SL6GJLDX5BMUCES3I7VN2XCDGH2XWXTPYCIND"
+                    }
+                },
+                "id": 457886,
+                "paging_token": "457886",
+                "seller": "GB5BTJFMQXSZB2733O2SL6GJLDX5BMUCES3I7VN2XCDGH2XWXTPYCIND",
+                "selling": {
+                    "asset_type": "credit_alphanum12",
+                    "asset_code": "rocketWoman",
+                    "asset_issuer": "issuer public key"
+                },
+                "buying": {
+                    "asset_type": "native"
+                },
+                "amount": "10.0000000",
+                "price_r": {
+                    "n": 10,
+                    "d": 1
+                },
+                "price": "10.0000000"
+            }
+        ]
+    }
+}
+```
+
+#### POST /trades
+
+Request:
+```
+{
+    "baseAsset": {
+        "code": "rocketWoman",
+        "issuer": "GDZCM7KFIFMW2SU4RS5YMUZPEKFWUI6WQTHBRB6AHPBRT5UQZJ4WM3II"
+    },
+    "counterAsset": "native"
+}
+```
+Response:
+```
+{
+    "body": {},
+    "success": {
+        "base": {},
+        "counter": {},
+        "results": {
+            "records": [
+                {
+                    "_links": {
+                        "self": {
+                            "href": ""
+                        },
+                        "base": {
+                            "href": "https://horizon-testnet.stellar.org/accounts/GB5BTJFMQXSZB2733O2SL6GJLDX5BMUCES3I7VN2XCDGH2XWXTPYCIND"
+                        },
+                        "counter": {
+                            "href": "https://horizon-testnet.stellar.org/accounts/GANYSXPWMGO4Z36CY324C63LGGBN3DIMAQPJGPHOD7AXF3ESS4TI3K76"
+                        },
+                        "operation": {
+                            "href": "https://horizon-testnet.stellar.org/operations/41920229428695041"
+                        }
+                    },
+                    "id": "41920229428695041-0",
+                    "paging_token": "41920229428695041-0",
+                    "ledger_close_time": "2018-06-29T23:22:55Z",
+                    "offer_id": "457886",
+                    "base_account": "GB5BTJFMQXSZB2733O2SL6GJLDX5BMUCES3I7VN2XCDGH2XWXTPYCIND",
+                    "base_amount": "1.7499940",
+                    "base_asset_type": "credit_alphanum12",
+                    "base_asset_code": "rocketWoman",
+                    "base_asset_issuer": "GDZCM7KFIFMW2SU4RS5YMUZPEKFWUI6WQTHBRB6AHPBRT5UQZJ4WM3II",
+                    "counter_account": "GANYSXPWMGO4Z36CY324C63LGGBN3DIMAQPJGPHOD7AXF3ESS4TI3K76",
+                    "counter_amount": "17.4999400",
+                    "counter_asset_type": "native",
+                    "base_is_seller": true,
+                    "price": {
+                        "n": 10,
+                        "d": 1
+                    }
+                },
+                {
+                    "_links": {
+                        "self": {
+                            "href": ""
+                        },
+                        "base": {
+                            "href": "https://horizon-testnet.stellar.org/accounts/GB5BTJFMQXSZB2733O2SL6GJLDX5BMUCES3I7VN2XCDGH2XWXTPYCIND"
+                        },
+                        "counter": {
+                            "href": "https://horizon-testnet.stellar.org/accounts/GANYSXPWMGO4Z36CY324C63LGGBN3DIMAQPJGPHOD7AXF3ESS4TI3K76"
+                        },
+                        "operation": {
+                            "href": "https://horizon-testnet.stellar.org/operations/41922484286533633"
+                        }
+                    },
+                    "id": "41922484286533633-0",
+                    "paging_token": "41922484286533633-0",
+                    "ledger_close_time": "2018-06-30T00:06:40Z",
+                    "offer_id": "457886",
+                    "base_account": "GB5BTJFMQXSZB2733O2SL6GJLDX5BMUCES3I7VN2XCDGH2XWXTPYCIND",
+                    "base_amount": "8.2499990",
+                    "base_asset_type": "credit_alphanum12",
+                    "base_asset_code": "rocketWoman",
+                    "base_asset_issuer": "GDZCM7KFIFMW2SU4RS5YMUZPEKFWUI6WQTHBRB6AHPBRT5UQZJ4WM3II",
+                    "counter_account": "GANYSXPWMGO4Z36CY324C63LGGBN3DIMAQPJGPHOD7AXF3ESS4TI3K76",
+                    "counter_amount": "82.4999900",
+                    "counter_asset_type": "native",
+                    "base_is_seller": true,
+                    "price": {
+                        "n": 10,
+                        "d": 1
+                    }
+                }
+            ]
         }
     }
 }
