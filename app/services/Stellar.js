@@ -45,11 +45,27 @@ function Stellar() {
   }
 }
 
-Stellar.prototype.networkInfo = function (network) {
+Stellar.prototype.networkInfo = async function (network) {
   let obj = new Object();
   obj.network = network;
   obj.currentNetworkUrl = this.connectedNetworkUrl;
-  return obj;
+
+  return await rp.get({
+    uri: this.connectedNetworkUrl,
+    json: true
+  })
+  .then((result) => {
+    obj.result = result;
+    return Promise.resolve(obj)
+  })
+  .catch((error) => {
+    console.log('error',error)
+    return Promise.reject(error);
+  })
+
+
+
+  // return obj;
 }
 
 /**

@@ -10,7 +10,24 @@ module.exports = {
     res.send(req.body);
   },
   networkInfo: function (req, res, next) {
-    res.send(stellar.networkInfo({ network: stellar.network }));
+    let obj = new Object();
+    try {
+      stellar.networkInfo({ network: stellar.network })
+        .then(function (tx) {
+          obj.success = tx;
+          res.send(obj)
+        })
+        .catch((error) => {
+          console.log('error: ', error)
+          obj.error = JSON.parse(stringify(error));
+          res.status(404).send(obj).end();
+        });
+
+    } catch (error) {
+      console.log('catch error', error)
+      obj.error = error;
+      res.status(404).send(obj).end();
+    }
   },
   decodeXDR: function (req, res, next) {
     res.send(stellar.decodeXDR(req.body.xdr));
