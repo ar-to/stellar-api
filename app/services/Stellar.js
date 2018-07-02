@@ -53,6 +53,18 @@ Stellar.prototype.networkInfo = function (network) {
 }
 
 /**
+ * Decode xdr from ledgers or transactions
+ * @param {string} xdr 
+ */
+Stellar.prototype.decodeXDR = function (xdr) {
+  let obj = new Object();
+  let tx = new StellarSdk.Transaction(xdr);
+  obj.txOperations = tx.operations;
+  obj.decodedXDR = tx;
+  return obj;
+}
+
+/**
  * Generate seed pair (secret and public key)
  * @return {object} seed pair
  */

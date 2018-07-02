@@ -29,6 +29,7 @@ router.get('/offer/:offerId', api.getOfferById);
 router.get('/offers/:accountId', api.getOffersByAccount);
 
 // POST
+router.post('/decode-xdr', api.decodeXDR);
 router.post('/create-friendbot-account/:publicKey', api.createFriendBotAccount);
 router.post('/create-account', api.createAccount);
 router.post('/payment', api.payment);

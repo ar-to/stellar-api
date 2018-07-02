@@ -12,6 +12,9 @@ module.exports = {
   networkInfo: function (req, res, next) {
     res.send(stellar.networkInfo({ network: stellar.network }));
   },
+  decodeXDR: function (req, res, next) {
+    res.send(stellar.decodeXDR(req.body.xdr));
+  },
   generateSeed: function (req, res, next) {
     res.send(stellar.generateSeed());
   },

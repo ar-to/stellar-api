@@ -105,6 +105,38 @@ Offers allow accounts to trade assets.
 
 ## Stellar API Notes
 
+#### POST /decode-xdr
+Stellar encode most of the information in its responses in XDR(External Data Representation). You can read more about it [here](https://www.stellar.org/developers/horizon/reference/xdr.html). This endpoint helps decode a xdr string into human readable json format.
+
+Request:
+```
+{
+	"xdr": "AAAAAPImfUVBWW1KnIy7hlMvIotqI9aEzhiHwDvDGfaQynlmAAAAZACTF2oAAAAPAAAAAAAAAAAAAAABAAAAAAAAAAEAAAAAAbwCS+VX8lr4x2u++az6OQJ3HN5FeKTWLQ961cp4kPoAAAAAAAAAABfXhAAAAAAAAAAAAZDKeWYAAABAvn1FDG5pB/MO6qX90qt5dW6e/CiGG6Mikoyal3K96rT6Ki73VmtRRHLTzovg266ig8UXYUA6rPNNQQLL97bMAg=="
+}
+```
+Response:
+```
+{
+    "txOperations": [
+        {
+            "type": "manageOffer",
+            "selling": {
+                "code": "LTC",
+                "issuer": "GA77B6GK5K3FH2YJ6I5VJ7VPFZKPBQUX2IIC2MJYAERQTGJI4VOPKRYJ"
+            },
+            "buying": {
+                "code": "BTC",
+                "issuer": "GA77B6GK5K3FH2YJ6I5VJ7VPFZKPBQUX2IIC2MJYAERQTGJI4VOPKRYJ"
+            },
+            "amount": "60.5323181",
+            "price": "0.0125324",
+            "offerId": "145229"
+        },
+        ...
+    ]
+}
+```
+
 #### GET /ledger/:sequence
 Pass the sequence number for the ledger to get details. Example:
 ```
@@ -561,15 +593,33 @@ https://horizon-testnet.stellar.org/accounts/GDZCM7KFIFMW2SU4RS5YMUZPEKFWUI6WQTH
         ]
     },
     {
+        "path": "/api/ledger/:sequence",
+        "methods": [
+            "GET"
+        ]
+    },
+    {
         "path": "/api/transaction/:transactionHash",
         "methods": [
             "GET"
         ]
     },
     {
-        "path": "/api/ledger/:sequence",
+        "path": "/api/offer/:offerId",
         "methods": [
             "GET"
+        ]
+    },
+    {
+        "path": "/api/offers/:accountId",
+        "methods": [
+            "GET"
+        ]
+    },
+    {
+        "path": "/api/decode-xdr",
+        "methods": [
+            "POST"
         ]
     },
     {
@@ -597,13 +647,37 @@ https://horizon-testnet.stellar.org/accounts/GDZCM7KFIFMW2SU4RS5YMUZPEKFWUI6WQTH
         ]
     },
     {
+        "path": "/api/orderbook",
+        "methods": [
+            "POST"
+        ]
+    },
+    {
+        "path": "/api/trades",
+        "methods": [
+            "POST"
+        ]
+    },
+    {
         "path": "/api/create-asset",
         "methods": [
             "POST"
         ]
     },
     {
+        "path": "/api/trust-asset",
+        "methods": [
+            "POST"
+        ]
+    },
+    {
         "path": "/api/issue-asset",
+        "methods": [
+            "POST"
+        ]
+    },
+    {
+        "path": "/api/create-offer",
         "methods": [
             "POST"
         ]
