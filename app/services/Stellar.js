@@ -2,6 +2,8 @@ let request = require('request');
 let rp = require('request-promise')
 let StellarSdk = require('stellar-sdk');
 const connections = require('./connections.js');
+let utils = require("../utils");
+let crypto = require("crypto");
 
 function Stellar() {
   'use strict'
@@ -54,14 +56,14 @@ Stellar.prototype.networkInfo = async function (network) {
     uri: this.connectedNetworkUrl,
     json: true
   })
-  .then((result) => {
-    obj.result = result;
-    return Promise.resolve(obj)
-  })
-  .catch((error) => {
-    console.log('error',error)
-    return Promise.reject(error);
-  })
+    .then((result) => {
+      obj.result = result;
+      return Promise.resolve(obj)
+    })
+    .catch((error) => {
+      console.log('error', error)
+      return Promise.reject(error);
+    })
 
 
 
@@ -178,10 +180,43 @@ Stellar.prototype.getTransaction = function (transactionHash) {
  * @param {string} senderSecretSeed 
  * @param {string} startingBalance 
  * @param {string} destinationPublicKey 
+ * @param {string|object} [memo] @see [Memo ](http://stellar.github.io/js-stellar-sdk/Memo.html) for types available. Defaults to 
+ * @param {string} [memo.type] Accepts value in string: none, id,text,hash,return
+ * @param {string} [memo.value] depends on the type selected
+ * @param {string} [memo.generateRandom] if true it will generate random string else it takes the value and generates the hash
+ * @param {string|object} [customAsset] @see [Asset ](http://stellar.github.io/js-stellar-sdk/Asset.html). defaults to "native"
+ * @param {string|object} [customAsset.code] 
+ * @param {string|object} [customAsset.issuer] 
+ * 
  */
-Stellar.prototype.payment = async function (senderSecretSeed, amount, destinationPublicKey) {
+Stellar.prototype.payment = async function (senderSecretSeed, amount, destinationPublicKey, memo, customAsset) {
   let obj = new Object();
   let that = this;
+
+  if (typeof customAsset === 'object') {
+    obj.customAsset = new StellarSdk.Asset(customAsset.code, customAsset.issuer);
+  } else if (customAsset === 'native') {
+    obj.customAsset = StellarSdk.Asset.native();
+  }
+  if (typeof memo === 'object') {
+    if (memo.type === 'hash' && memo.generateRandom) {
+      const buf = crypto.randomBytes(32);
+      obj.value = buf.toString('hex');
+    } else if (memo.type === 'hash') {
+      let hash = crypto.createHash('sha256');
+      hash.update(memo.value);
+      obj.value = hash.digest('hex');
+    } else if (memo.type === 'id') {
+      // const buf2 = Math.random().toString().substr(2, 10);
+      // console.log('crypto.randomBytes(32)', typeof buf2)
+      const buf2 = utils.getRndInteger(0,10000000).toString()
+      obj.value = buf2;
+    }
+    obj.memo = new StellarSdk.Memo(memo.type, obj.value);
+  } else if (memo === 'MemoText') {
+    obj.memo = new StellarSdk.Memo('text', 'Sent Payment');
+  }
+
 
   let sourcePair = StellarSdk.Keypair.fromSecret(senderSecretSeed);
   obj.sourceCanSign = sourcePair.canSign();
@@ -191,9 +226,10 @@ Stellar.prototype.payment = async function (senderSecretSeed, amount, destinatio
       var transaction = new StellarSdk.TransactionBuilder(source)
         .addOperation(StellarSdk.Operation.payment({
           destination: destinationPublicKey,
-          asset: StellarSdk.Asset.native(),
+          asset: obj.customAsset,
           amount: amount
         }))
+        .addMemo(obj.memo)
         .build();
       transaction.sign(sourcePair);
       obj.tx = await that.server.submitTransaction(transaction);

@@ -202,7 +202,9 @@ module.exports = {
     let {
       senderSecretSeed,
       amount,
-      destinationPublicKey
+      destinationPublicKey,
+      memo,
+      customAsset
     } = req.body;
 
     try {
@@ -215,14 +217,23 @@ module.exports = {
       if (destinationPublicKey === "" || destinationPublicKey === null || destinationPublicKey === undefined) {
         throw "missing destination public key"
       }
-      stellar.payment(senderSecretSeed, amount, destinationPublicKey)
+      if (memo === "" || memo === null || memo === undefined) {
+        memo = "MemoText";
+      }
+      if (customAsset === "" || customAsset === null || customAsset === undefined) {
+        customAsset = "native";
+      }
+      stellar.payment(senderSecretSeed, amount, destinationPublicKey, memo, customAsset)
         .then(function (tx) {
           obj.success = tx;
           res.send(obj)
         })
         .catch((error) => {
-          console.log('error: ', error)
-          obj.error = JSON.parse(stringify(error));
+          obj.error = JSON.parse(stringify(error.message));
+          if (error.response != undefined) {
+            console.log('error: ', error.response.data)
+            obj.stellarError = error.response.data;
+          }
           res.status(404).send(obj).end();
         });
 
@@ -360,16 +371,16 @@ module.exports = {
     } = req.body;
 
     try {
-      if(sellingAsset == null || sellingAsset.code === null || sellingAsset.issuer === null){
+      if (sellingAsset == null || sellingAsset.code === null || sellingAsset.issuer === null) {
         throw "sellingAsset or its parameters cannot be null";
       }
-      else if (sellingAsset == "" || sellingAsset.code === "" || sellingAsset.issuer === ""){
+      else if (sellingAsset == "" || sellingAsset.code === "" || sellingAsset.issuer === "") {
         throw "sellingAsset or its parameters cannot be empty strings";
       }
-      if(buyingAsset == null || buyingAsset.code === null || buyingAsset.issuer === null){
+      if (buyingAsset == null || buyingAsset.code === null || buyingAsset.issuer === null) {
         throw "buyingAsset or its parameters cannot be null";
       }
-      else if (buyingAsset == "" || buyingAsset.code === "" || buyingAsset.issuer === ""){
+      else if (buyingAsset == "" || buyingAsset.code === "" || buyingAsset.issuer === "") {
         throw "buyingAsset or its parameters cannot be empty strings";
       }
       stellar.createoffer(distributorSecretSeed, sellingAsset, buyingAsset, sellingAmount, price, offerID)
