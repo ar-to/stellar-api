@@ -24,6 +24,7 @@ router.get('/network', api.networkInfo);
 router.get('/generate-seed', api.generateSeed);
 router.get('/get-balance/:publicKey', api.getBalance);
 router.get('/ledger/:sequence', api.getLedger);
+router.get('/ledger-txs/:sequence', api.getLedgerTxs);
 router.get('/transaction/:transactionHash', api.getTransaction);
 router.get('/offer/:offerId', api.getOfferById);
 router.get('/offers/:accountId', api.getOffersByAccount);

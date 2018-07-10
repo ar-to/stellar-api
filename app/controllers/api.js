@@ -66,6 +66,32 @@ module.exports = {
           res.send(obj)
         })
         .catch((error) => {
+          obj.error = JSON.parse(stringify(error.message));
+          if (error.response != undefined) {
+            console.log('error: ', error.response.data)
+            obj.stellarError = error.response.data;
+          }
+          res.status(404).send(obj).end();
+        });
+
+    } catch (error) {
+      console.log('catch error', error)
+      obj.error = error.message;
+      res.status(404).send(obj).end();
+    }
+  },
+  getLedgerTxs: function (req, res, next) {
+    let obj = new Object();
+    obj.params = req.params;
+    let sequence = req.params.sequence;
+
+    try {
+      stellar.getLedgerTxs(sequence)
+        .then(function (tx) {
+          obj.success = tx;
+          res.send(obj)
+        })
+        .catch((error) => {
           console.log('error: ', error)
           obj.error = JSON.parse(stringify(error));
           res.status(404).send(obj).end();
@@ -239,7 +265,7 @@ module.exports = {
 
     } catch (error) {
       console.log('catch error', error)
-      obj.error = error;
+      obj.error = error.message;
       res.status(404).send(obj).end();
     }
   },

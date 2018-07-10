@@ -243,6 +243,19 @@ Stellar.prototype.payment = async function (senderSecretSeed, amount, destinatio
 }
 
 Stellar.prototype.getLedger = function (sequence) {
+  return this.server.ledgers()
+    .ledger(sequence)
+    .call()
+    .then(function (details) {
+      return Promise.resolve(details)
+    })
+    .catch(function (err) {
+      console.log('err', err);
+      return Promise.reject(err);
+    });
+}
+
+Stellar.prototype.getLedgerTxs = function (sequence) {
   return this.server.transactions()
     .forLedger(sequence)
     .call()
