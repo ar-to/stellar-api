@@ -211,8 +211,14 @@ Stellar.prototype.payment = async function (senderSecretSeed, amount, destinatio
       // console.log('crypto.randomBytes(32)', typeof buf2)
       const buf2 = utils.getRndInteger(0,10000000).toString()
       obj.value = buf2;
-    }
+    } 
+    /**
+     * Pending Error: when type is text  and value is string sdk seems to check it as object.
+     * Solution: added an 'else if' check for string below
+     */
     obj.memo = new StellarSdk.Memo(memo.type, obj.value);
+  } else if (typeof memo === 'string') {
+    obj.memo = new StellarSdk.Memo('text', memo);
   } else if (memo === 'MemoText') {
     obj.memo = new StellarSdk.Memo('text', 'Sent Payment');
   }
@@ -430,7 +436,6 @@ Stellar.prototype.createAsset = async function (assetCode, assetLimit, creationA
   let distributorPair = StellarSdk.Keypair.fromSecret(distributorSecretSeed);
   obj.issuerPublicKey = issuerPair.publicKey();
   obj.distributorPublicKey = distributorPair.publicKey();
-
   // create new asset object
   obj.newAsset = new StellarSdk.Asset(assetCode, obj.issuerPublicKey);
 

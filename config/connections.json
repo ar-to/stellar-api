@@ -2,7 +2,7 @@
   "networks": {
     "connectApi": "external",
     "local":{
-      "url": "http://0.0.0.0:8000",
+      "url": "http://0.0.0.0:8088",
       "fallbackUrl": "https://horizon-testnet.stellar.org",
       "networkName": "docker",
       "networkType": "testnet"
