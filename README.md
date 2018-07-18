@@ -190,7 +190,7 @@ There a few things to keep in mind when constructing this request object:
 
 - the memo is optional and defaults to a string "Sent Payment"
 - change the memo type changes what is sent, see [docs](http://stellar.github.io/js-stellar-sdk/Memo.html). In this api, the following apply
-    - type : id - generates a random number string between 10 - 10000000
+    - type : id -  and pass valid number string, or leave value empty and it generates a random number string between 10 - 10000000
     - type : hash - generates a 32 byte hash using the `value` parameter data via `crypto.createHash('sha256')`
     - type : hash and generateRandom : true - generates a 32 byte random string via `crypto.randomBytes(32)`
 - customAsset parameter is optional and defaults to "native" which is Lumens

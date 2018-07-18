@@ -387,8 +387,12 @@ module.exports = {
         obj.success = account;
         res.send(obj)
       }).catch((error) => {
-        console.log('error: ', error)
-        obj.error = error;
+        // console.log('error: ', error)
+        obj.error = JSON.parse(stringify(error.message));
+        if (error.response != undefined) {
+          console.log('error: ', error.response.data)
+          obj.stellarError = error.response.data;
+        }
         res.status(404).send(obj).end();
       });
   },
