@@ -9,10 +9,10 @@ function Stellar() {
   'use strict'
 
   this.network = connections.network;
+  let that = this;
   switch (connections.networkType) {
     case 'testnet':
       this.testnet = true;
-      let that = this;
       try {
         // run request
         rp.get({
@@ -33,11 +33,45 @@ function Stellar() {
           })
           // else pic fallback url
           .catch((error) => {
-            // console.log('error', error.statusCode)
+            // console.log('error>>', error.statusCode)
             this.connectedNetworkUrl = connections.fallbackUrl;
             console.log('connectedNetworkUrl', this.connectedNetworkUrl)
             this.server = new StellarSdk.Server(connections.fallbackUrl, { allowHttp: true });
             StellarSdk.Network.useTestNetwork()
+          })
+      } catch (error) {
+        console.log('Stellar connection error', error)
+        throw new Error(`Failed to connect to a valid network, please verify your connection. Error: ${error}`)
+      }
+      break;
+    case 'mainnet':
+      this.mainnet = true;
+      // let that = this;
+      try {
+        // run request
+        rp.get({
+          uri: connections.networkUrl,
+          resolveWithFullResponse: true
+        })
+          .then((result) => {
+            // check res is 200
+            console.log('Stellar connection statusCode 200:', result.statusCode === 200)
+            if (result.statusCode === 200) {
+              this.connectedNetworkUrl = connections.networkUrl;
+              console.log('connectedNetworkUrl', this.connectedNetworkUrl)
+              this.server = new StellarSdk.Server(connections.networkUrl, { allowHttp: true });
+              StellarSdk.Network.usePublicNetwork()
+            } else {
+              throw new Error(`Failed to connect to the network: ${connections.networkUrl}`)
+            }
+          })
+          // else pic fallback url
+          .catch((error) => {
+            console.log('error>>', error.statusCode)
+            this.connectedNetworkUrl = connections.fallbackUrl;
+            console.log('connectedNetworkUrl', this.connectedNetworkUrl)
+            this.server = new StellarSdk.Server(connections.fallbackUrl, { allowHttp: true });
+            StellarSdk.Network.usePublicNetwork()
           })
       } catch (error) {
         console.log('Stellar connection error', error)

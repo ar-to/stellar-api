@@ -1,6 +1,6 @@
 {
   "networks": {
-    "connectApi": "external",
+    "connectApi": "mainnet",
     "local":{
       "url": "http://0.0.0.0:8088",
       "fallbackUrl": "https://horizon-testnet.stellar.org",
@@ -12,6 +12,11 @@
       "networkName": "stellar",
       "networkType": "testnet"
     },
-    "mainnet":{}
+    "mainnet":{
+      "url": "http://xlm-mainnet.domain.com:8000/",
+      "fallbackUrl": "https://horizon.stellar.org/",
+      "networkName": "stellar",
+      "networkType": "mainnet"
+    }
   }
 }
